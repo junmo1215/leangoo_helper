@@ -41,6 +41,8 @@ def _getpass(prompt='Password:'):
             count += 1
             chars.append(new_char)
             msvcrt.putch('*')
+    # 在输入之后回车，防止下一个输出直接接在在密码后面
+    print ""
     return ''.join(chars)
 
 def check_login(func):
@@ -48,6 +50,7 @@ def check_login(func):
     def wrapper(*args, **kw):
         """抽象装饰器中的方法"""
         if is_init() is False:
+            print "You need login first."
             login()
         return func(*args, **kw)
     return wrapper
@@ -56,9 +59,9 @@ def login(email="", pwd=""):
     """登录"""
     # print u"%s调用成功啦，参数为%s %s" % ("login", email, pwd)
     if email == "":
-        email = raw_input("please input your email:")
+        email = raw_input("Please input your email:")
     if pwd == "":
-        pwd = _getpass("password")
+        pwd = _getpass("Password:")
     try:
         init(email, pwd)
     except LoginError as error:

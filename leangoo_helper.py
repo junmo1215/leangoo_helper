@@ -168,6 +168,13 @@ FUNCTION_AND_EXPLANATION = {
         "Description": "Read items from a task and add them to a list.",
         "Options": {
         }
+    },
+    "login":{
+        "Description": "",
+        "Options":{
+            "email": "Your email for login in leangoo.",
+            "pwd": "Your password in leangoo."
+        }
     }
 }
 
