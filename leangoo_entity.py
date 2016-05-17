@@ -43,5 +43,6 @@ class l_block(object):
         self.list_id = list_id
         self.lane_id = lane_id
 
-#test_task = l_task("", new_id(), new_id(),new_id(),new_id(),"")
-#print test_task.list_id
+class LoginError(RuntimeError):
+    """登录失败的异常"""
+    pass

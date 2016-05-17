@@ -62,7 +62,8 @@ def init(email, password):
     r = _post(login_url, data=data)
     # 登录成功会跳转到board_lidt页面
     if r.url <> _full_url("/kanban/board_list"):
-        raise Exception(u"登录失败")
+        raise LoginError("login failed")
+        # raise Exception(u"登录失败")
 
     # 应该是用户认证信息相关的cookie，每次请求好像都会把这个发过去
     # 由于有一次自动的跳转，取cookie的时候需要取上一个请求的

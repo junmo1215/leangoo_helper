@@ -39,7 +39,7 @@ General Options:%s""" % (_get_explanation("commands"), _get_explanation("general
         raise ValueError(key)
 
 def _get_explanation(key):
-    """获取说明列表"""
+    """获取指令和通用选项的说明列表"""
     if key == "commands":
         explanation_dict = COMMAND_AND_EXPLANATION
     elif key == "general_options":
@@ -60,18 +60,18 @@ def _process_function(cmd_input):
     function_name = inputs[0]
     arguments = inputs[1::]
 
-    #print "interface_name is %s and arguments are %s" % (function_name, arguments)
     options = []
+    # 分离通用选项和方法的参数
     for option in GENERAL_OPTION_AND_EXPLANATION.keys():
         if option in arguments:
-            options += option
+            options.append(option)
             arguments.remove(option)
 
-    _process_options(function_name, options)
-
-    # if GENERAL_OPTION_AND_EXPLANATION.keys() in arguments:
-    #     _process_options(function_name, arguments)
-    #     return
+    if len(options) > 0:
+        # 处理完通用选项之后就不执行这个方法了
+        # 比如login -h email pwd这个命令的效果就只是看login这个命令的帮助
+        _process_options(function_name, options)
+        return
 
     # 调用对应的方法
     try:
@@ -82,12 +82,36 @@ def _process_function(cmd_input):
         print "ERROR: number of arguments is not match."
 
 def _process_options(function_name, options):
-    if options == "-h":
+    if "-h" in options:
         # show help of this function
-        pass
+        _show_help_of_function(function_name)
 
+def _show_help_of_function(function_name):
+    """显示方法的帮助说明"""
+    print """
+Description: %s
+
+Arguments: %s""" % (
+    _get_function_description(function_name),
+    _get_function_explanation(function_name))
+
+def _get_function_description(function_name):
+    """通过方法名获取方法的描述"""
+    return "\n\t %s" % FUNCTION_AND_EXPLANATION[function_name]["Description"]
+
+def _get_function_explanation(function_name):
+    """通过方法名获取方法参数以及说明"""
+    options = FUNCTION_AND_EXPLANATION[function_name]["Options"]
+    if options == {}:
+        return "\n\t %s" % "This function need no arguments."
+    message = ""
+    for command, explanation in options.items():
+        message += "\n\t %s \t\t %s" % (command, explanation)
+    return message
 
 def _process_cmd(cmd_input):
+    """处理用户输入的指令"""
+    # 退出指令单独处理，因为返回值和其他的不同
     if cmd_input in SYSTEM_CMD["end_keys"]:
         return STATUSENUM.END
 
@@ -133,15 +157,16 @@ COMMAND_AND_EXPLANATION = {
 
 # 通用选项及说明
 GENERAL_OPTION_AND_EXPLANATION = {
-    "-h": "Show help."
+    "-h": "Show help.",
+    "-t": "test"
 }
 
 # 关于每个方法的介绍以及参数说明
+# 在interface中新增的方法都要在这里添加说明
 FUNCTION_AND_EXPLANATION = {
     "items_to_tasks": {
         "Description": "Read items from a task and add them to a list.",
         "Options": {
-            "": ""
         }
     }
 }

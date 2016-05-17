@@ -1,6 +1,8 @@
 # -*- coding: UTF-8 -*-
 """
 为主程序提供调用接口
+在这个文件中增加的方法都需要在leangoo_helper中说明
+维护 FUNCTION_AND_EXPLANATION
 """
 
 import requests
@@ -41,20 +43,28 @@ def _getpass(prompt='Password:'):
             msvcrt.putch('*')
     return ''.join(chars)
 
-def login(email, pwd):
-    """登录"""
-    print u"%s调用成功啦，参数为%s %s" % ("login", email, pwd)
-    # while is_init() is False:
-    #     # print u"请输入登录邮箱和密码！"
-    #     print "please input your email and password"
-    #     email = raw_input(u">>> email:")
-    #     # pwd = raw_input(u"密码:")
-    #     pwd = _getpass(">>> password:")
-    #     try:
-    #         init(email, pwd)
-    #     except Exception as e:
-    #         print e.message
-    #     print ""
+def check_login(func):
+    """用来检查用户是否登录的装饰器"""
+    def wrapper(*args, **kw):
+        """抽象装饰器中的方法"""
+        if is_init() is False:
+            login()
+        return func(*args, **kw)
+    return wrapper
 
-def items_to_task():
-    print ""    
+def login(email="", pwd=""):
+    """登录"""
+    # print u"%s调用成功啦，参数为%s %s" % ("login", email, pwd)
+    if email == "":
+        email = raw_input("please input your email:")
+    if pwd == "":
+        pwd = _getpass("password")
+    try:
+        init(email, pwd)
+    except LoginError as error:
+        print error
+
+@check_login
+def items_to_tasks():
+    """将工作项转换为任务"""
+    print "items_to_task"
