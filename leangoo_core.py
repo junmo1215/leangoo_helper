@@ -40,7 +40,7 @@ def init(email, password):
     执行初始化
     username:用户名
     password：密码
-    创建人：卢君默    
+    创建人：卢君默
     创建时间：2016-4-21 13:41:55
     """
     global current_user, current_cookies
@@ -49,30 +49,31 @@ def init(email, password):
     login_url = _full_url("/kanban/login/go")
     # 构造登录时需要的数据
     data = {
-        "email": email,
-        "passwd": password,
-        "use_mobile_css": "N",
         "from_page": "",
-        "rem_pwd": "记住密码",
-        "login": "登录"
+        "email": email,
+        "pwd": password,
+        "loginRemPwdVal": "true"
     }
     current_cookies = {
-        "PHPSESSID": "8ofs4r0c23qgimjd0ie6teup91"
+        "PHPSESSID": "shuc48lfj13g8q8f805obem1u1"
     }
     r = _post(login_url, data=data)
-    # 登录成功会跳转到board_lidt页面
-    if r.url <> _full_url("/kanban/board_list"):
-        raise LoginError("login failed")
-        # raise Exception(u"登录失败")
+
+    # leangoo首页登录返回方式改掉了，现在是返回json字符串
+    response_data = json.loads(r.text)
+    if response_data["succeed"] is False:
+        raise LoginError(response_data["message"])
 
     # 应该是用户认证信息相关的cookie，每次请求好像都会把这个发过去
-    # 由于有一次自动的跳转，取cookie的时候需要取上一个请求的
-    for cookie in r.history[0].cookies:
+    for cookie in r.cookies:
         current_cookies[cookie.name] = cookie.value
 
     # 更新当前登录人信息
     current_user["email"] = email
     current_user["password"] = password
+    # 在看板列表界面才取的到用户名，之前又一次跳转所以不需要在代码里面请求这个地址
+    # 改版之后跳转写在了js里面，所以这里需要手动请求一次
+    r = _get(response_data["message"])
     current_user["username"] = _get_username_after_login(r)
 
 def logout():
@@ -184,8 +185,8 @@ def get_username():
     获取当前操作人的用户名
     创建人：卢君默    创建时间：2016-4-22 14:02:51
     """
-    if is_init() == False:
-        raise Exception("未登录")
+    if is_init() is False:
+        raise LoginError("Need login")
     return current_user["username"]
 
 def get_email():
@@ -193,8 +194,8 @@ def get_email():
     获取当前操作人的用户名
     创建人：卢君默    创建时间：2016-4-22 14:38:24
     """
-    if is_init() == False:
-        raise Exception("未登录")
+    if is_init() is False:
+        raise LoginError("Need login")
     return current_user["email"]
 
 def chklst_add_item(task_id, item_name, board_id, item_id=""):
@@ -226,13 +227,13 @@ def chklst_add_item(task_id, item_name, board_id, item_id=""):
         # status默认值为1
         (current_board.tasks)[task_id].chklst.append(l_chklst(item_id, item_name, "1"))
 
-def _try_get_new_id(board_id):    
+def _try_get_new_id(board_id):
     """
     在相应面板内新建id
     创建人：卢君默    创建时间：2016-4-23 17:13:10
     """
     # 如果获取不到token，创建id之前访问任务所在的页面，需要取这个页面的token
-    if _has_token() == False:
+    if _has_token() is False:
         _get(_full_url("/kanban/board/go/%s" % board_id))
     return new_id()
 
@@ -317,7 +318,9 @@ def get_tasks(task_name, board_id):
     """
     board = open_board(board_id)
     result = []
-    for _task in board.tasks:
+    print board.tasks
+    for _task in board.tasks.values():
+        print _task
         if _task.task_name == task_name:
             result.append(_task)
     return result
@@ -331,18 +334,18 @@ def add_task(new_task_name, board_id, lane_id, list_id,
     if task_id == "":
         task_id = _try_get_new_id(board_id)
     r = _post(_full_url("/kanban/task/add"), {
-            "new_task_name": new_task_name,
-            "board_id": board_id,
-            "lane_id": lane_id,
-            "list_id": list_id,
-            "block_id": block_id,
-            "task_id": task_id,
-            "list_name": list_name(list_id, board_id),
-            "position_before_task": position_before_task
-        })
+        "new_task_name": new_task_name,
+        "board_id": board_id,
+        "lane_id": lane_id,
+        "list_id": list_id,
+        "block_id": block_id,
+        "task_id": task_id,
+        "list_name": list_name(list_id, board_id),
+        "position_before_task": position_before_task
+    })
     # 检查请求是否有异常
     _check_response(r)
-  
+
     # 更新全局变量
     (current_board.tasks)[task_id] = l_task(task_id, new_task_name, board_id, list_id, block_id)
 
@@ -359,8 +362,8 @@ def list_name(list_id, board_id=""):
     for list in board.lists:
         if list.list_id == list_id:
             return list.list_name
-    raise Exception("未能找到对应的list")
-    
+    raise Exception("List not found. list_id: %s" % list_id)
+
 def _check_response(r):
     """
     检查请求的返回值是否正常
@@ -371,7 +374,7 @@ def _check_response(r):
 
     if r.content <> "":
         result = json.loads(r.content)
-        if result["succeed"] == False:
+        if result["succeed"] is False:
             raise Exception(result["message"])
 
 def edit_task(edit_task_name, task_id, board_id):
@@ -394,5 +397,6 @@ def get_tasks_in_list(list_id, board_id=""):
         if _task.list_id == list_id:
             result.append(_task)
 
-    return result    
+    return result
+
 

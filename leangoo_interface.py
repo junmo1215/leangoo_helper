@@ -52,6 +52,9 @@ def check_login(func):
         if is_init() is False:
             print "You need login first."
             login()
+            if is_init() is False:
+                # 这里抛异常防止继续执行后面的代码
+                raise LoginError("")
         return func(*args, **kw)
     return wrapper
 
@@ -59,9 +62,9 @@ def login(email="", pwd=""):
     """登录"""
     # print u"%s调用成功啦，参数为%s %s" % ("login", email, pwd)
     if email == "":
-        email = raw_input("Please input your email:")
+        email = raw_input("Please input your email: ")
     if pwd == "":
-        pwd = _getpass("Password:")
+        pwd = _getpass("Password: ")
     try:
         init(email, pwd)
     except LoginError as error:
