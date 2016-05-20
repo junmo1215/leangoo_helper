@@ -1,5 +1,8 @@
 # -*- coding: UTF-8 -*-
-# 这个文件中的方法失败直接抛异常
+""""
+leangoo 相关操作的一些实现
+这个文件中的方法失败直接抛异常
+"""
 
 import requests
 from pyquery import PyQuery
@@ -10,16 +13,16 @@ import json
 from leangoo_entity import *
 import re
 
-current_user = {} # 记录email username password
-current_cookies = {}
-latest_response = None
+CURRENT_USER = {} # 记录email username password
+CURRENT_COOLIES = {}
+LATEST_RESPONSE = None
 
 # 当前看板相关信息，只有在打开看板的时候才更新
-current_board = None
+CURRENT_BOARD = None
 
-root_url = "https://www.leangoo.com"
+ROOT_URL = "https://www.leangoo.com"
 # 模拟请求头
-headers = {
+HEADERS = {
     "Cache-Control": "max-age=0",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
     "User-Agent": "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.110 Safari/537.36",
@@ -33,7 +36,7 @@ def is_init():
     判断是否初始化，使用之前应当用用户名和密码初始化一下
     创建人：卢君默    创建时间：2016-4-22 13:58:38
     """
-    return current_user.has_key("username") and current_user.get("username") <> ""    
+    return CURRENT_USER.has_key("username") and CURRENT_USER.get("username") <> ""
 
 def init(email, password):
     """
@@ -43,7 +46,7 @@ def init(email, password):
     创建人：卢君默
     创建时间：2016-4-21 13:41:55
     """
-    global current_user, current_cookies
+    global CURRENT_COOLIES
     #好像登录前注销没有什么意义，暂时先不处理
     #logout()
     login_url = _full_url("/kanban/login/go")
@@ -54,27 +57,27 @@ def init(email, password):
         "pwd": password,
         "loginRemPwdVal": "true"
     }
-    current_cookies = {
+    CURRENT_COOLIES = {
         "PHPSESSID": "shuc48lfj13g8q8f805obem1u1"
     }
-    r = _post(login_url, data=data)
+    resp = _post(login_url, data=data)
 
     # leangoo首页登录返回方式改掉了，现在是返回json字符串
-    response_data = json.loads(r.text)
+    response_data = json.loads(resp.text)
     if response_data["succeed"] is False:
         raise LoginError(response_data["message"])
 
     # 应该是用户认证信息相关的cookie，每次请求好像都会把这个发过去
-    for cookie in r.cookies:
-        current_cookies[cookie.name] = cookie.value
+    for cookie in resp.cookies:
+        CURRENT_COOLIES[cookie.name] = cookie.value
 
     # 更新当前登录人信息
-    current_user["email"] = email
-    current_user["password"] = password
+    CURRENT_USER["email"] = email
+    CURRENT_USER["password"] = password
     # 在看板列表界面才取的到用户名，之前又一次跳转所以不需要在代码里面请求这个地址
     # 改版之后跳转写在了js里面，所以这里需要手动请求一次
-    r = _get(response_data["message"])
-    current_user["username"] = _get_username_after_login(r)
+    resp = _get(response_data["message"])
+    CURRENT_USER["username"] = _get_username_after_login(resp)
 
 def logout():
     """
@@ -84,37 +87,37 @@ def logout():
     logout_url = _full_url("/kanban/login/logout")
     _get(logout_url)
 
-def _get_username_after_login(r):
+def _get_username_after_login(resp):
     """
     在输入密码后跳转的页面中获取用户名
     创建人：卢君默    创建时间：2016-4-22 13:59:06
     """
-    return PyQuery(PyQuery(r.text)("#nav_user_name")).text()
+    return PyQuery(PyQuery(resp.text)("#nav_user_name")).text()
 
 def _full_url(url):
     """
     根据相对路径获取完整的url
     创建人：卢君默    创建时间：2016-4-22 13:59:15
     """
-    return root_url + url
+    return ROOT_URL + url
 
 def get_cookies():
     """
     返回现在的cookie
     创建人：卢君默    创建时间：2016-4-22 13:59:23
     """
-    return current_cookies
-    	
+    return CURRENT_COOLIES
+
 def check_str_is_empty(*strs):
     """
     检查参数中的字符串是否为空，为空则抛出异常
     创建人：卢君默    创建时间：2016-4-22 14:10:45
     """
-    for str in strs:
-        if str == "":
+    for _str in strs:
+        if _str == "":
             raise Exception("存在空字符串")
 
-def _get(url, data={}, is_update_response=True):
+def _get(url, data=None, is_update_response=True):
     """
     封装get方法
     url：绝对地址
@@ -122,13 +125,13 @@ def _get(url, data={}, is_update_response=True):
     is_update_response: 是否更新最后一次相应信息
     创建人：卢君默    创建时间：2016-4-22 16:06:47
     """
-    global latest_response
-    r = requests.get(url, headers=headers, data=data, cookies=current_cookies, verify=False)
+    global LATEST_RESPONSE
+    resp = requests.get(url, headers=HEADERS, data=data, cookies=CURRENT_COOLIES, verify=False)
     if is_update_response:
-        latest_response = r
-    return r
+        LATEST_RESPONSE = resp
+    return resp
 
-def _post(url, data={}, is_update_response=True):
+def _post(url, data=None, is_update_response=True):
     """
     封装post方法
     url：绝对地址
@@ -136,11 +139,11 @@ def _post(url, data={}, is_update_response=True):
     is_update_response: 是否更新最后一次相应信息
     创建人：卢君默    创建时间：2016-4-22 16:07:34
     """
-    global latest_response
-    r = requests.post(url, headers=headers, data=data, cookies=current_cookies, verify=False)
+    global LATEST_RESPONSE
+    resp = requests.post(url, headers=HEADERS, data=data, cookies=CURRENT_COOLIES, verify=False)
     if is_update_response:
-        latest_response = r
-    return r
+        LATEST_RESPONSE = resp
+    return resp
 
 def new_id():
     """
@@ -163,14 +166,14 @@ def _get_token():
     """
     获取页面中的token值
     创建人：卢君默    创建时间：2016-4-22 18:38:13
-    """   
+    """
     # 如果能从board中取到值则直接返回
-    if current_board is not None and current_board.token <> "":
-        return current_board.token
+    if CURRENT_BOARD is not None and CURRENT_BOARD.token <> "":
+        return CURRENT_BOARD.token
 
-    val = PyQuery(latest_response.text)("#token").val()    
-    if val == None:
-       raise Exception("未能从当前页面中获取token值")
+    val = PyQuery(LATEST_RESPONSE.text)("#token").val()
+    if val is None:
+        raise Exception("未能从当前页面中获取token值")
     return val
 
 def _has_token():
@@ -178,7 +181,8 @@ def _has_token():
     判断能否获取到token
     创建人：卢君默    创建时间：2016-4-23 15:52:56
     """
-    return (current_board <> None and current_board.token <> "") or PyQuery(latest_response.text)("#token").val() is not None
+    return ((CURRENT_BOARD <> None and CURRENT_BOARD.token <> "")
+            or PyQuery(LATEST_RESPONSE.text)("#token").val() is not None)
 
 def get_username():
     """
@@ -187,7 +191,7 @@ def get_username():
     """
     if is_init() is False:
         raise LoginError("Need login")
-    return current_user["username"]
+    return CURRENT_USER["username"]
 
 def get_email():
     """
@@ -196,7 +200,7 @@ def get_email():
     """
     if is_init() is False:
         raise LoginError("Need login")
-    return current_user["email"]
+    return CURRENT_USER["email"]
 
 def chklst_add_item(task_id, item_name, board_id, item_id=""):
     """
@@ -207,8 +211,8 @@ def chklst_add_item(task_id, item_name, board_id, item_id=""):
     item_id:检查项id(没有就新增一个)
     创建人：卢君默    创建时间：2016-4-23 12:31:37
     """
-    global current_board
-    if item_id == "":        
+    global CURRENT_BOARD
+    if item_id == "":
         item_id = _try_get_new_id(board_id)
 
     data = {
@@ -217,15 +221,15 @@ def chklst_add_item(task_id, item_name, board_id, item_id=""):
         "item_id": item_id,
         "board_id": board_id
         }
-    r = _post(_full_url("/kanban/chklst/addItem"), data)
+    resp = _post(_full_url("/kanban/chklst/addItem"), data)
 
     # 检查请求是否有异常
-    _check_response(r)
+    _check_response(resp)
 
     # 更新全局变量
     if _is_current_board(board_id):
         # status默认值为1
-        (current_board.tasks)[task_id].chklst.append(l_chklst(item_id, item_name, "1"))
+        (CURRENT_BOARD.tasks)[task_id].chklst.append(l_chklst(item_id, item_name, "1"))
 
 def _try_get_new_id(board_id):
     """
@@ -242,7 +246,7 @@ def _is_current_board(board_id):
     是否为当前打开的面板
     创建人：卢君默    创建时间：2016-4-23 16:29:49
     """
-    return board_id == current_board.board_id
+    return board_id == CURRENT_BOARD.board_id
 
 def open_board(board_id):
     """
@@ -250,13 +254,13 @@ def open_board(board_id):
     ps:这些信息是根据页面加载时候的那个js来的（loadBoardData方法中的参数）
     创建人：卢君默    创建时间：2016-4-23 15:25:35
     """
-    global current_board
-    if current_board is not None and current_board.board_id == board_id:
-        return current_board
+    global CURRENT_BOARD
+    if CURRENT_BOARD is not None and CURRENT_BOARD.board_id == board_id:
+        return CURRENT_BOARD
 
-    r = _get(_full_url("/kanban/board/go/%s" % board_id))
+    resp = _get(_full_url("/kanban/board/go/%s" % board_id))
     # 这里没找到好点的办法，直接写死了。。。
-    sctipts = PyQuery(PyQuery(r.content)("script")[22]).html()
+    sctipts = PyQuery(PyQuery(resp.content)("script")[22]).html()
 
     # 解析html，得到页面加载时候的看板信息
     match_result = re.findall(ur"(?<=loadBoardData[\(])[^\)）]+(?=[\)])", sctipts)
@@ -274,16 +278,19 @@ def open_board(board_id):
         board.lists.append(l_list(_list["list_id"], _list["list_name"], board.board_id))
 
     for _task_id, _task in json_data["tasks"].viewitems():
-        temp_task = l_task(_task_id, _task["task_name"], board.board_id, _task["list_id"], _task["block_id"])
+        temp_task = l_task(_task_id, _task["task_name"],
+                           board.board_id, _task["list_id"], _task["block_id"])
         for _chklst in _task["chklst"]:
-            temp_task.chklst.append(l_chklst(_chklst["item_id"], _chklst["item_name"], _chklst["status"]))
+            temp_task.chklst.append(
+                l_chklst(_chklst["item_id"], _chklst["item_name"], _chklst["status"])
+            )
         board.tasks[_task_id] = temp_task
 
     for _block in json_data["blocks"]:
         board.blocks.append(l_block(_block["block_id"], _block["list_id"], _block["lane_id"]))
 
     # 更新到全局变量中
-    current_board = board
+    CURRENT_BOARD = board
     return board
 
 def get_current_board():
@@ -291,7 +298,7 @@ def get_current_board():
     获取当前看板信息
     创建人：卢君默    创建时间：2016-4-23 15:41:41
     """
-    return current_board
+    return CURRENT_BOARD
 
 def chklst_get_items(task_id, board_id):
     """
@@ -301,11 +308,11 @@ def chklst_get_items(task_id, board_id):
     创建人：卢君默    创建时间：2016-4-23 16:57:02
     """
 
-    if _is_current_board(board_id) == False:
+    if _is_current_board(board_id) is False:
         # 不是获取的当前面板时需要打开对应的面板
         open_board(board_id)
 
-    task = current_board.get_task(task_id)
+    task = CURRENT_BOARD.get_task(task_id)
     result = []
     for chklst in task.chklst:
         result.append(chklst.item_name)
@@ -330,10 +337,10 @@ def add_task(new_task_name, board_id, lane_id, list_id,
     """
     添加任务
     """
-    global current_board
+    global CURRENT_BOARD
     if task_id == "":
         task_id = _try_get_new_id(board_id)
-    r = _post(_full_url("/kanban/task/add"), {
+    resp = _post(_full_url("/kanban/task/add"), {
         "new_task_name": new_task_name,
         "board_id": board_id,
         "lane_id": lane_id,
@@ -344,10 +351,10 @@ def add_task(new_task_name, board_id, lane_id, list_id,
         "position_before_task": position_before_task
     })
     # 检查请求是否有异常
-    _check_response(r)
+    _check_response(resp)
 
     # 更新全局变量
-    (current_board.tasks)[task_id] = l_task(task_id, new_task_name, board_id, list_id, block_id)
+    (CURRENT_BOARD.tasks)[task_id] = l_task(task_id, new_task_name, board_id, list_id, block_id)
 
 def list_name(list_id, board_id=""):
     """
@@ -355,25 +362,25 @@ def list_name(list_id, board_id=""):
     创建人：卢君默    创建时间：2016-4-23 17:34:49
     """
     if board_id == "":
-        board = current_board
+        board = CURRENT_BOARD
     else:
         board = open_board(board_id)
 
-    for list in board.lists:
-        if list.list_id == list_id:
-            return list.list_name
+    for _list in board.lists:
+        if _list.list_id == list_id:
+            return _list.list_name
     raise Exception("List not found. list_id: %s" % list_id)
 
-def _check_response(r):
+def _check_response(resp):
     """
     检查请求的返回值是否正常
     创建人：卢君默    创建时间：2016-4-23 17:20:42
     """
-    if r.status_code <> 200:
+    if resp.status_code <> 200:
         raise Exception("网络请求失败")
 
-    if r.content <> "":
-        result = json.loads(r.content)
+    if resp.content <> "":
+        result = json.loads(resp.content)
         if result["succeed"] is False:
             raise Exception(result["message"])
 
@@ -388,12 +395,12 @@ def get_tasks_in_list(list_id, board_id=""):
     check_str_is_empty(list_id)
 
     if board_id == "":
-        board = current_board
+        board = CURRENT_BOARD
     else:
         board = open_board(board_id)
 
     result = []
-    for _task_id, _task in board.tasks.viewitems():
+    for _task in board.tasks.values():
         if _task.list_id == list_id:
             result.append(_task)
 
