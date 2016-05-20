@@ -71,6 +71,12 @@ def login(email="", pwd=""):
         print error
 
 @check_login
-def items_to_tasks():
-    """将工作项转换为任务"""
+def items_to_tasks(task, position=(0, 0)):
+    """
+    将检查项项转换为任务
+    task: 工作项（id或名称，如果名称有重复的则定位为第一个）
+    position：需要放置检查项的block的位置，按行列给出坐标（索引初始值为0，原点在左上角）
+    """
+    task_id = '350d4a03d5f13c5f'
+
     print "items_to_task"
