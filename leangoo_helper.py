@@ -3,6 +3,7 @@
 主程序
 """
 import leangoo_interface
+import sys
 VERSION = "v1.0"
 
 class Enum(set):
@@ -77,9 +78,9 @@ def _process_function(cmd_input):
     try:
         getattr(leangoo_interface, function_name)(*arguments)
     except AttributeError:
-        print "ERROR: cmd '%s' is not found" % function_name
+        raise AttributeError("ERROR: cmd '%s' is not found" % function_name)
     except TypeError:
-        print "ERROR: number of arguments is not match."
+        raise TypeError("ERROR: number of arguments is not match.")
 
 def _process_options(function_name, options):
     if "-h" in options:
@@ -157,8 +158,7 @@ COMMAND_AND_EXPLANATION = {
 
 # 通用选项及说明
 GENERAL_OPTION_AND_EXPLANATION = {
-    "-h": "Show help.",
-    "-t": "test"
+    "-h": "Show help."
 }
 
 # 关于每个方法的介绍以及参数说明
@@ -167,13 +167,25 @@ FUNCTION_AND_EXPLANATION = {
     "items_to_tasks": {
         "Description": "Read items from a task and add them to a list.",
         "Options": {
+            "task": "A name or id for the task\
+(if there are some task with same name, return the first one).",
+            "position_x": "Zero-based index of list in x-axis.",
+            "position_y": "Zero-based index of lane in y-axis."
         }
     },
     "login":{
-        "Description": "",
+        "Description": "Login leangoo with email and password.",
         "Options":{
-            "email": "Your email for login in leangoo.",
+            "email": "Your email for login leangoo.",
             "pwd": "Your password in leangoo."
+        }
+    },
+    "open_board_by_id": {
+        "Description": "Open a board so that you can operate in the board, \
+if you had and change in the browser, \
+you need to use open_board_by_id to refresh data.",
+        "Options": {
+            "board_id": "id of the board(you can get it at the last of url)."
         }
     }
 }
@@ -187,8 +199,10 @@ def main():
     STATUS = STATUSENUM.WAIT_CMD
 
     while STATUS <> STATUSENUM.END:
+        # cmd_input = raw_input(PROMPT)
+        # STATUS = _process_cmd(cmd_input.strip())
         try:
-            cmd_input = raw_input(PROMPT)
+            cmd_input = raw_input(PROMPT).decode(sys.stdin.encoding)
             STATUS = _process_cmd(cmd_input.strip())
         except Exception as e:
             STATUS = STATUSENUM.WAIT_CMD

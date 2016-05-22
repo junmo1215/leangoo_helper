@@ -58,6 +58,17 @@ def check_login(func):
         return func(*args, **kw)
     return wrapper
 
+def check_open_board(func):
+    """用来检查用户是否打开了一个看板的装饰器"""
+    def wrapper(*args, **kw):
+        """对下面的方法进行封装"""
+        if get_current_board() is None:
+            print "You need open a board."
+            board_id = raw_input("Please input a id to open the board: ")
+            open_board(board_id)
+        return func(*args, **kw)
+    return wrapper
+
 def login(email="", pwd=""):
     """登录"""
     # print u"%s调用成功啦，参数为%s %s" % ("login", email, pwd)
@@ -71,12 +82,41 @@ def login(email="", pwd=""):
         print error
 
 @check_login
-def items_to_tasks(task, position=(0, 0)):
+@check_open_board
+def items_to_tasks(task, position_x=0, position_y=0):
     """
     将检查项项转换为任务
     task: 工作项（id或名称，如果名称有重复的则定位为第一个）
     position：需要放置检查项的block的位置，按行列给出坐标（索引初始值为0，原点在左上角）
     """
-    task_id = '350d4a03d5f13c5f'
+    task_id = ""
+    current_board = get_current_board()
+    for _id, _task in current_board.tasks.items():
+        # 根据id和name找到task_id，只要有一个匹配上了就行
+        if task in [_task.task_id, _task.task_name]:
+            task_id = _id
+            break
+    if task_id == "":
+        raise Exception('ERROR: task "%s" not found' % task)
 
-    print "items_to_task"
+    position = (int(position_x), int(position_y))
+    if current_board.positions.has_key(position) is False:
+        raise Exception('ERROR: position "%s" out of range' % position)
+
+    block = current_board.positions[position]
+    # 获取检查项
+    chklst = chklst_get_items(task_id, current_board.board_id)
+
+    for i in xrange(0, len(chklst)):
+        add_task_thread = \
+            threading.Thread(target=add_task,
+                             args=(chklst[i], current_board.board_id,
+                                   block.lane_id, block.list_id, block.block_id, ),
+                             name="add_task_%s" % i)
+        add_task_thread.start()
+    add_task_thread.join()
+
+@check_login
+def open_board_by_id(board_id):
+    """通过id打开看板，如果看板已打开则刷新数据"""
+    open_board(board_id, True)

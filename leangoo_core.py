@@ -250,19 +250,27 @@ def _is_current_board(board_id):
     """
     return board_id == CURRENT_BOARD.board_id
 
-def open_board(board_id):
+def open_board(board_id, refresh=False):
     """
     打开一个面板，更新最后一次访问的地址，更新当前面板以及相关信息
+    board_id: 需要打开的面板的id
+    refresh: 如果当前面板就是需要打开的面板是否需要刷新
     ps:这些信息是根据页面加载时候的那个js来的（loadBoardData方法中的参数）
     创建人：卢君默    创建时间：2016-4-23 15:25:35
     """
     global CURRENT_BOARD
-    if CURRENT_BOARD is not None and CURRENT_BOARD.board_id == board_id:
+    if CURRENT_BOARD is not None \
+        and CURRENT_BOARD.board_id == board_id \
+        and refresh is False:
         return CURRENT_BOARD
 
     resp = _get(_full_url("/kanban/board/go/%s" % board_id))
-    # 这里没找到好点的办法，直接写死了。。。
-    sctipts = PyQuery(PyQuery(resp.content)("script")[22]).html()
+    try:
+        # 这里没找到好点的办法，直接写死了。。。
+        # 改版之后就变成23了，这真是一个忧伤的故事
+        sctipts = PyQuery(PyQuery(resp.content)("script")[23]).html()
+    except IndexError:
+        raise IndexError("Board maybe not open correctly. Please check your board id. ")
 
     # 解析html，得到页面加载时候的看板信息
     match_result = re.findall(ur"(?<=loadBoardData[\(])[^\)）]+(?=[\)])", sctipts)
@@ -291,9 +299,25 @@ def open_board(board_id):
     for _block in json_data["blocks"]:
         board.blocks.append(l_block(_block["block_id"], _block["list_id"], _block["lane_id"]))
 
+    board.positions = init_positions(json_data, board)
+
     # 更新到全局变量中
     CURRENT_BOARD = board
     return board
+
+def init_positions(json_data, board):
+    """在页面加载时候的json对象中获取block的位置，返回坐标和对象的对应关系"""
+    position_and_block = {}
+    blocks = board.blocks
+    x_max = len(board.lists)
+    y_max = len(blocks) / x_max
+
+    i = 0
+    for y_position in xrange(0, y_max):
+        for x_position in xrange(0, x_max):
+            position_and_block[(x_position, y_position)] = blocks[i]
+            i += 1
+    return position_and_block
 
 def get_current_board():
     """
@@ -386,10 +410,6 @@ def _check_response(resp):
         if result["succeed"] is False:
             raise Exception(result["message"])
 
-def edit_task(edit_task_name, task_id, board_id):
-    """编辑任务"""
-    pass
-
 def get_tasks_in_list(list_id, board_id=""):
     """
     获取指定list中的task列表
@@ -407,5 +427,15 @@ def get_tasks_in_list(list_id, board_id=""):
             result.append(_task)
 
     return result
+
+# def get_block_by_position(position):
+#     """通过坐标获取对应的block，纵坐标的缺省值是0"""
+#     if CURRENT_BOARD is None:
+#         raise AssertionError("No board is opened.")
+#     x_max = len(CURRENT_BOARD.lists)
+#     y_max = len(CURRENT_BOARD.blocks) / x_max
+#     # 索引从0开始，所以两边坐标都要减一
+#     x_max -= 1
+#     y_max -= 1
 
 
