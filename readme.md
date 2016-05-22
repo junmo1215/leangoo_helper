@@ -13,5 +13,6 @@ tips：
 - 使用命令名称 + -h选项可以获取对应指令的说明
 
 #### **个人建议在使用之前先对当前看板做一个备份,以免程序有bug造成不必要的影响**
+####**执行的命令和参数均不能包含空格，无论这个空格是否在括号或引号中**
 
 SDK地址：[http://doc.star7th.com/index.php?s=/2934](http://doc.star7th.com/index.php?s=/2934 "http://doc.star7th.com/index.php?s=/2934")
