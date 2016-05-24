@@ -257,6 +257,8 @@ def open_board(board_id, refresh=False):
     refresh: 如果当前面板就是需要打开的面板是否需要刷新
     ps:这些信息是根据页面加载时候的那个js来的（loadBoardData方法中的参数）
     创建人：卢君默    创建时间：2016-4-23 15:25:35
+    修改页面加载时获取json数据的方式，去掉正则
+    修改人：卢君默    修改时间：2016-5-24 12:43:48
     """
     global CURRENT_BOARD
     if CURRENT_BOARD is not None \
@@ -272,11 +274,8 @@ def open_board(board_id, refresh=False):
     except IndexError:
         raise IndexError("Board maybe not open correctly. Please check your board id. ")
 
-    # 解析html，得到页面加载时候的看板信息
-    match_result = re.findall(ur"(?<=loadBoardData[\(])[^\)）]+(?=[\)])", sctipts)
-    if len(match_result) == 0:
-        raise Exception("解析页面信息出错，未能获取此看板中的相关信息")
-    json_data = json.loads(match_result[0])
+    # 这个正则不好用啊，手动写算了
+    json_data = _parse_json_in_scripts(sctipts)
 
     # 初始化当前的看板对象什么的
     json_board = json_data["board"]
@@ -299,14 +298,35 @@ def open_board(board_id, refresh=False):
     for _block in json_data["blocks"]:
         board.blocks.append(l_block(_block["block_id"], _block["list_id"], _block["lane_id"]))
 
-    board.positions = init_positions(json_data, board)
+    board.positions = _init_positions(board)
 
     # 更新到全局变量中
     CURRENT_BOARD = board
     return board
 
-def init_positions(json_data, board):
-    """在页面加载时候的json对象中获取block的位置，返回坐标和对象的对应关系"""
+def _parse_json_in_scripts(scripts):
+    """
+    从页面加载的脚本中解析出json对象，这是一段脑残的代码，估计leangoo改版这个就要改了
+    创建人：卢君默   创建时间：2016-5-24 12:42:37
+    """
+    # 获取方法中起始和结束的标记，begin为方法名称end为方法后面一句
+    begin = "loadBoardData("
+    end = "if (useMobileCSS())"
+    scripts = scripts[scripts.find(begin) + len(begin):scripts.find(end)]
+    # 取出的结果最后有方法调用结束时的反括号和分号，这里需要去掉
+    scripts = scripts[:scripts.rfind(");")]
+    try:
+        return json.loads(scripts)
+    except:
+        raise Exception("Parse json from script failed.")
+
+
+def _init_positions(board):
+    """
+    在页面加载时候的json对象中获取block的位置，返回坐标和对象的对应关系
+    这个方法正确的前提条件是json对象中的block是按照顺序加载的
+    创建人：卢君默    创建时间：2016-5-24 12:43:03
+    """
     position_and_block = {}
     blocks = board.blocks
     x_max = len(board.lists)
@@ -427,15 +447,3 @@ def get_tasks_in_list(list_id, board_id=""):
             result.append(_task)
 
     return result
-
-# def get_block_by_position(position):
-#     """通过坐标获取对应的block，纵坐标的缺省值是0"""
-#     if CURRENT_BOARD is None:
-#         raise AssertionError("No board is opened.")
-#     x_max = len(CURRENT_BOARD.lists)
-#     y_max = len(CURRENT_BOARD.blocks) / x_max
-#     # 索引从0开始，所以两边坐标都要减一
-#     x_max -= 1
-#     y_max -= 1
-
-
