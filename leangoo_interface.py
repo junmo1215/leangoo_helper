@@ -79,7 +79,7 @@ def login(email="", pwd=""):
     try:
         init(email, pwd)
     except LoginError as error:
-        print error
+        print error.message
 
 @check_login
 @check_open_board

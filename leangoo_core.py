@@ -21,6 +21,10 @@ LATEST_RESPONSE = None
 CURRENT_BOARD = None
 
 ROOT_URL = "https://www.leangoo.com"
+
+# 用户设置相关信息
+SETTING = {}
+
 # 模拟请求头
 HEADERS = {
     "Cache-Control": "max-age=0",
@@ -288,7 +292,7 @@ def open_board(board_id, refresh=False):
 
     for _task_id, _task in json_data["tasks"].viewitems():
         temp_task = l_task(_task_id, _task["task_name"],
-                           board.board_id, _task["list_id"], _task["block_id"])
+                           board.board_id, _task["list_id"], _task["block_id"], [])
         for _chklst in _task["chklst"]:
             temp_task.chklst.append(
                 l_chklst(_chklst["item_id"], _chklst["item_name"], _chklst["status"])
@@ -315,11 +319,23 @@ def _parse_json_in_scripts(scripts):
     scripts = scripts[scripts.find(begin) + len(begin):scripts.find(end)]
     # 取出的结果最后有方法调用结束时的反括号和分号，这里需要去掉
     scripts = scripts[:scripts.rfind(");")]
+    # 将实体转换成对应的文本
+    scripts = _entity_to_str(scripts)
     try:
         return json.loads(scripts)
     except:
         raise Exception("Parse json from script failed.")
 
+def _entity_to_str(a_str):
+    """
+    去除字符串中的实体，将实体装换成对应的文本
+    a_str: 需要去除实体的字符串
+    返回处理之后的字符串
+    """
+    for entity in SETTING["html_entities"]:
+        a_str = a_str.replace(entity["entity_name"], entity["result"])
+        a_str = a_str.replace(entity["entity_number"], entity["result"])
+    return a_str
 
 def _init_positions(board):
     """
@@ -447,3 +463,44 @@ def get_tasks_in_list(list_id, board_id=""):
             result.append(_task)
 
     return result
+
+def read_setting_from_file():
+    """读取配置信息"""
+    global SETTING
+    SETTING = _parse_json("setting.json")
+
+def _parse_json(filename):
+    """ Parse a JSON file
+        First remove comments and then use the json module package
+        Comments look like :
+            // ...
+        or
+            /*
+            ...
+            */
+    """
+    # Regular expression for comments
+    comment_re = re.compile(
+        '(^)?[^\S\n]*/(?:\*(.*?)\*/[^\S\n]*|/[^\n]*)($)?',
+        re.DOTALL | re.MULTILINE
+    )
+    with open(filename) as f:
+        content = ''.join(f.readlines())
+
+        ## Looking for comments
+        match = comment_re.search(content)
+        while match:
+            # single line comment
+            content = content[:match.start()] + content[match.end():]
+            match = comment_re.search(content)
+
+        # Return json file
+        return json.loads(content)
+
+
+
+def login_with_setting(user_name):
+    """通过设置中的用户名和密码登录"""
+    user = SETTING["users"][user_name]
+    init(user["email"], user["pwd"])
+

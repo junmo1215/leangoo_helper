@@ -45,8 +45,8 @@ def test_get_email():
 
 def test_chklst_add_item():
     board_id = "1081970"
-    task_id = "350d4a03d5f13c5f"
-    task_name = u"主办一场大型技术峰会"
+    task_id = "2dc33d8c35a05361"
+    task_name = u"asdasdadasdasdasdasd"
     test_task = open_board(board_id).tasks[task_id]
     assert test_task.task_id == task_id
     assert test_task.task_name == task_name
@@ -93,9 +93,9 @@ def test_add_task():
     assert len(tasks_before) + 1 == len(tasks_after)
 
 def test_get_task():
-    ids = get_tasks(u"主办一场大型技术峰会", "1081970")
+    ids = get_tasks(u"asdasdadasdasdasdasd", "1081970")
     assert len(ids) == 1
-    assert ids[0].task_id == "350d4a03d5f13c5f"
+    assert ids[0].task_id == "2dc33d8c35a05361"
 
 
 

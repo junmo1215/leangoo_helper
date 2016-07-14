@@ -3,6 +3,7 @@
 主程序
 """
 import leangoo_interface
+import leangoo_core
 import sys
 VERSION = "v1.0"
 
@@ -76,7 +77,10 @@ def _process_function(cmd_input):
 
     # 调用对应的方法
     try:
-        getattr(leangoo_interface, function_name)(*arguments)
+        if FUNCTION_AND_EXPLANATION.has_key(function_name):
+            getattr(leangoo_interface, function_name)(*arguments)
+        else:
+            raise AttributeError("ERROR: cmd '%s' is not found" % function_name)
     except AttributeError:
         raise AttributeError("ERROR: cmd '%s' is not found" % function_name)
     except TypeError:
@@ -196,6 +200,8 @@ def main():
     """
     global STATUS
     _show("welcome")
+    # 读取配置信息
+    leangoo_core.read_setting_from_file()
     STATUS = STATUSENUM.WAIT_CMD
 
     while STATUS <> STATUSENUM.END:

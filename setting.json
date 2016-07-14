@@ -1,0 +1,66 @@
+{
+    // html实体
+    "html_entities": [
+        {
+            "result": "<",
+            "description": "less than",
+            "entity_name": "&lt;",
+            "entity_number": "&#60;"
+        },
+        {
+            "result": ">",
+            "description": "greater than",
+            "entity_name": "&gt;",
+            "entity_number": "&#62;"
+        },
+        {
+            "result": "&",
+            "description": "ampersand",
+            "entity_name": "&amp;",
+            "entity_number": "&#38;"
+        },
+        {
+            "result": "¢",
+            "description": "cent",
+            "entity_name": "&cent;",
+            "entity_number": "&#162;"
+        },
+        {
+            "result": "£",
+            "description": "pound",
+            "entity_name": "&pound;",
+            "entity_number": "&#163;"
+        },
+        {
+            "result": "¥",
+            "description": "yen",
+            "entity_name": "&yen;",
+            "entity_number": "&#165;"
+        },
+        {
+            "result": "€",
+            "description": "euro",
+            "entity_name": "&euro;",
+            "entity_number": "&#8364;"
+        },
+        {
+            "result": "©",
+            "description": "copyright",
+            "entity_name": "&copy;",
+            "entity_number": "&#169;"
+        },
+        {
+            "result": "®",
+            "description": "registered trademark",
+            "entity_name": "&reg;",
+            "entity_number": "&#174;"
+        }
+    ],
+    "users":{
+        "lean92": {
+            "user_name":"lean92",
+            "email": "lujunmo1992@126.com",
+            "pwd": "leangoolean92"
+        }
+    }
+}
